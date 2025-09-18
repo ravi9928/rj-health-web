@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, limit, query } from "firebase/firestore";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -84,6 +84,7 @@ export function BookingModal({
 }: BookingModalProps) {
   const [step, setStep] = useState(1);
   const [doctors, setDoctors] = useState<any[]>([]);
+  const [coupons, setCoupens] = useState<any[]>([]);
 
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState("");
@@ -100,6 +101,27 @@ export function BookingModal({
     symptoms: "",
     doctorId: selectedDoctor?.id || 1,
   });
+
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        const q = query(collection(db, "coupons"), limit(3)); // 👈 only 3 docs
+        const querySnapshot = await getDocs(q);
+
+        const couponsList: any[] = [];
+        querySnapshot.forEach((doc) => {
+          couponsList.push({ id: doc.id, ...doc.data() });
+        });
+        console.log(couponsList, "======t couponsList");
+        setCoupens(couponsList);
+      } catch (error) {
+        console.error("Error fetching doctors:", error);
+      }
+    };
+
+    fetchCoupons();
+  }, []);
+
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
@@ -189,91 +211,6 @@ export function BookingModal({
   };
 
   const handleBooking = async () => {
-    // try {
-    //   // 1. Create order on backend
-    //   const orderResponse = await fetch("/api/payments/create-order", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({
-    //       amount: total, // send in rupees, API multiplies by 100
-    //       doctorId: formData.doctorId,
-    //       procedureId: "procedure_123", // pass your actual procedureId here
-    //       patientData: formData,
-    //       couponId: couponCode || null,
-    //       isUrgent: isPriority,
-    //     }),
-    //   });
-
-    //   const { order } = await orderResponse.json();
-
-    //   if (!order?.id) {
-    //     throw new Error("Failed to create Razorpay order");
-    //   }
-
-    //   // 2. Razorpay options
-    //   const options: any = {
-    //     key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-    //     amount: order.amount, // in paise
-    //     currency: order.currency,
-    //     name: "RJ Healthcare",
-    //     description: "Doctor Appointment Booking",
-    //     order_id: order.id,
-    //     prefill: {
-    //       name: formData.name,
-    //       email: formData.email,
-    //       contact: formData.phone,
-    //     },
-    //     handler: async function (response: any) {
-    //       // ✅ Payment successful
-    //       toast({
-    //         title: "Payment Successful!",
-    //         description: `Payment ID: ${response.razorpay_payment_id}`,
-    //       });
-
-    //       // TODO: call another API to save booking with payment response
-    //       // e.g. await fetch("/api/bookings", { method: "POST", body: JSON.stringify({ order, response, patientData: formData }) });
-
-    //       // onClose();
-    //       setTimeout(() => {
-    //         setStep(1);
-    //         setSelectedDate(undefined);
-    //         setSelectedTime("");
-    //         setFormData({
-    //           name: "",
-    //           phone: "",
-    //           email: "",
-    //           age: "",
-    //           gender: "",
-    //           symptoms: "",
-    //           doctorId: selectedDoctor?.id || 1,
-    //         });
-    //         onClose();
-    //       }, 2000);
-    //     },
-    //     theme: { color: "#14B8A6" },
-    //   };
-
-    //   // 3. Open Razorpay Checkout
-    //   const rzp = new (window as any).Razorpay(options);
-    //   rzp.open();
-    // } catch (err) {
-    //   console.error("Payment error:", err);
-    //   toast({
-    //     title: "Payment Failed",
-    //     description: "Something went wrong while processing payment.",
-    //     variant: "destructive",
-    //   });
-    // }
-
-    // Simulate booking process
-    // toast({
-    //   title: "Booking Confirmed!",
-    //   description:
-    //     "Your appointment has been successfully booked. You will receive a confirmation SMS shortly.",
-    // });
-
-    // Reset form and close modal
-
     try {
       // 1. Create order on backend
       const orderResponse = await fetch("/api/payments/create-order", {
@@ -328,7 +265,7 @@ export function BookingModal({
           // });
 
           // onClose();
-                 setTimeout(() => {
+          setTimeout(() => {
             setStep(1);
             setSelectedDate(undefined);
             setSelectedTime("");
@@ -728,10 +665,41 @@ export function BookingModal({
                     <div className="text-sm text-gray-600">
                       <p className="mb-1">Available coupons:</p>
                       <ul className="space-y-1">
+                        {coupons.length > 0 ? (
+                          coupons.map((coupon) => (
+                            <li
+                              key={coupon.id}
+                              className="flex items-center text-sm"
+                            >
+                              •{" "}
+                              <span className="ml-1 font-semibold">
+                                {coupon.code}
+                              </span>{" "}
+                              - {coupon.description}
+                              {coupon.type === "percentage" ? (
+                                <span>({coupon.value}% off)</span>
+                              ) : (
+                                <span>(₹{coupon.value} off)</span>
+                              )}
+                              {coupon.applicableFor === "first-time" && (
+                                <span className="ml-2 text-blue-500">
+                                  (First-time only)
+                                </span>
+                              )}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-gray-500">
+                            No coupons available
+                          </li>
+                        )}
+                      </ul>
+
+                      {/* <ul className="space-y-1">
                         <li>• FIRST10 - 10% off for first-time patients</li>
                         <li>• HEALTH20 - 20% off on all consultations</li>
                         <li>• NEWPATIENT - 15% off for new patients</li>
-                      </ul>
+                      </ul> */}
                     </div>
                   </CardContent>
                 </Card>
