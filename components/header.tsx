@@ -62,6 +62,12 @@ export function Header() {
                 Our Doctors
               </Link>
               <Link
+                href="/bookings"
+                className="text-gray-700 hover:text-teal-600 font-medium transition-colors duration-200"
+              >
+                My Bookings
+              </Link>
+              <Link
                 href="/procedures"
                 className="text-gray-700 hover:text-teal-600 font-medium transition-colors duration-200"
               >

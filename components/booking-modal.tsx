@@ -244,20 +244,25 @@ export function BookingModal({
       });
 
       let order = await orderResponse.json(); // ✅ order is directly the Razorpay order object
-      console.log("order===", order);
-      order = order.order;
-      if (!order?.id) {
+      // order = order.order;
+      if (!order?.order.id) {
         throw new Error("Failed to create Razorpay order");
       }
-
+      const createOrder = order?.order;
       const pendingOrder = {
-        ...order,
+        ...createOrder,
         status: "pending",
         payment: null,
         patientData: formData,
       };
-      await updateOrderStatus(order.id, pendingOrder);
-
+      try {
+        await updateOrderStatus(createOrder.id, pendingOrder);
+      } catch (err) {
+        console.error(
+          "⚠️ Failed to update Firestore, but payment succeeded:",
+          err
+        );
+      }
       // 2. Razorpay options
       const options: any = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -280,16 +285,7 @@ export function BookingModal({
             payment: response,
           };
 
-          await updateOrderStatus(order.id, paidOrder);
-          try {
-            await updateOrderStatus(order.id, paidOrder);
-          } catch (err) {
-            console.error(
-              "⚠️ Failed to update Firestore, but payment succeeded:",
-              err
-            );
-            // toast.error("Payment succeeded but booking not saved. Contact support.");
-          }
+          await updateOrderStatus(createOrder.id, paidOrder);
           toast({
             title: "Payment Successful!",
             description: `Payment ID: ${response.razorpay_payment_id}`,
@@ -340,7 +336,7 @@ export function BookingModal({
         };
 
         try {
-          await updateOrderStatus(order.id, failedOrder);
+          await updateOrderStatus(createOrder.id, failedOrder);
         } catch (err) {
           console.error(
             "⚠️ Failed to update Firestore on payment.failed:",

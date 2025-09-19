@@ -1,7 +1,7 @@
 // Firebase configuration and initialization
 import { initializeApp } from "firebase/app"
 import { getFirestore } from "firebase/firestore"
-import { getAuth } from "firebase/auth"
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { getStorage } from "firebase/storage"
 
 const firebaseConfig = {
@@ -22,6 +22,7 @@ const firebaseConfig = {
   appId: "1:977001519760:web:e5a6171961f1c141961615",
   measurementId: "G-WT84H0RWV7",
 }
+
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
@@ -187,3 +188,5 @@ export const functions = {
 }
 
 export default app
+
+export { RecaptchaVerifier, signInWithPhoneNumber }
