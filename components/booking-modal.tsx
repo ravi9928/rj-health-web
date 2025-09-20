@@ -78,6 +78,7 @@ const timeSlots = [
   "5:00 PM",
 ];
 
+
 // const doctors = [
 //   { id: 1, name: "Dr. Samita Bhat", specialization: "Gynecology & Obstetrics", fee: { first: 800, followup: 500 } },
 //   { id: 2, name: "Dr. Rajesh Kumar", specialization: "Gastroenterology", fee: { first: 900, followup: 600 } },
@@ -234,7 +235,7 @@ export function BookingModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: total, // in rupees, API multiplies by 100
+          amount: String(total), // in rupees, API multiplies by 100
           doctorId: formData.doctorId,
           procedureId: "procedure_123", // replace with actual procedureId
           patientData: formData,
@@ -290,17 +291,6 @@ export function BookingModal({
             title: "Payment Successful!",
             description: `Payment ID: ${response.razorpay_payment_id}`,
           });
-
-          // TODO: Save booking with payment details to DB
-          // await fetch("/api/bookings", {
-          //   method: "POST",
-          //   headers: { "Content-Type": "application/json" },
-          //   body: JSON.stringify({
-          //     order,
-          //     payment: response,
-          //     patientData: formData,
-          //   }),
-          // });
 
           // onClose();
           setTimeout(() => {
