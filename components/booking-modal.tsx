@@ -78,7 +78,6 @@ const timeSlots = [
   "5:00 PM",
 ];
 
-
 // const doctors = [
 //   { id: 1, name: "Dr. Samita Bhat", specialization: "Gynecology & Obstetrics", fee: { first: 800, followup: 500 } },
 //   { id: 2, name: "Dr. Rajesh Kumar", specialization: "Gastroenterology", fee: { first: 900, followup: 600 } },
@@ -100,6 +99,7 @@ export function BookingModal({
   const [isFirstTime, setIsFirstTime] = useState(true);
   const [couponCode, setCouponCode] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponType, setCouponType] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -120,7 +120,6 @@ export function BookingModal({
         querySnapshot.forEach((doc) => {
           couponsList.push({ id: doc.id, ...doc.data() });
         });
-        console.log(couponsList, "======t couponsList");
         setCoupens(couponsList);
       } catch (error) {
         console.error("Error fetching doctors:", error);
@@ -157,17 +156,19 @@ export function BookingModal({
 
   const selectedDoctorData =
     doctors.find((d) => d.id === formData.doctorId) || doctors[0];
-  console.log("selectedDoctorData===", selectedDoctorData);
 
   const baseFee = isFirstTime
-    ? selectedDoctorData?.priorityFee
+    ? selectedDoctorData?.priorityFee 
     : selectedDoctorData?.recurringFee;
-  const priorityFee = isPriority ? 200 : 0;
+  const priorityFee = isPriority ? (selectedDoctorData.priorityFee ? selectedDoctorData.priorityFee : 200) : 0;
   const subtotal = baseFee + priorityFee;
-  const discount = (subtotal * couponDiscount) / 100;
+
+  const discount =
+    couponType == "percentage"
+      ? (subtotal * couponDiscount) / 100
+      : couponDiscount;
   const convenienceFee = 50;
   const total = subtotal - discount + convenienceFee;
-
   const handleNext = () => {
     if (step === 1 && (!selectedDate || !selectedTime)) {
       toast({
@@ -195,19 +196,27 @@ export function BookingModal({
   };
 
   const applyCoupon = () => {
-    const validCoupons = {
-      FIRST10: 10,
-      HEALTH20: 20,
-      NEWPATIENT: 15,
-    };
+    // Filter active coupons first (if not already done)
+    const activeCouponsMap = coupons
+      .filter((coupon) => coupon.status === "active")
+      .reduce((acc, coupon) => {
+        acc[coupon.code] = coupon.value;
+        return acc;
+      }, {} as Record<string, number>);
 
-    if (validCoupons[couponCode as keyof typeof validCoupons]) {
-      setCouponDiscount(validCoupons[couponCode as keyof typeof validCoupons]);
+    const discount =
+      activeCouponsMap[couponCode as keyof typeof activeCouponsMap];
+
+    if (discount) {
+      setCouponDiscount(discount);
+      setCouponType(coupons.find((c) => c.code === couponCode)?.type);
       toast({
         title: "Coupon Applied!",
-        description: `You saved ${
-          validCoupons[couponCode as keyof typeof validCoupons]
-        }% on your booking.`,
+        description: `You saved ${discount}${
+          coupons.find((c) => c.code === couponCode)?.type === "percentage"
+            ? "%"
+            : ""
+        } on your booking.`,
       });
     } else {
       toast({
@@ -684,7 +693,7 @@ export function BookingModal({
                       Priority Appointment
                     </Label>
                     <p className="text-sm text-amber-700">
-                      Get seen faster (+₹200)
+                      Get seen faster (+₹{selectedDoctorData.priorityFee ? selectedDoctorData.priorityFee : 200})
                     </p>
                   </div>
                   <Switch
