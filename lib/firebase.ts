@@ -5,14 +5,6 @@ import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth
 import { getStorage } from "firebase/storage"
 
 const firebaseConfig = {
-  // apiKey: "AIzaSyDummyApiKeyForRJHealthcare123456789",
-  // authDomain: "rj-healthcare-dummy.firebaseapp.com",
-  // projectId: "rj-healthcare-dummy",
-  // storageBucket: "rj-healthcare-dummy.appspot.com",
-  // messagingSenderId: "123456789012",
-  // appId: "1:123456789012:web:dummy123456789abcdef",
-  // measurementId: "G-DUMMY123456",
-
   
   apiKey: "AIzaSyDcw0_FX77BTM8R_CD9bqKHBG-l_sg6e58",
   authDomain: "rj-health.firebaseapp.com",
