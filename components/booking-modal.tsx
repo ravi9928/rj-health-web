@@ -158,16 +158,20 @@ export function BookingModal({
     doctors.find((d) => d.id === formData.doctorId) || doctors[0];
 
   const baseFee = isFirstTime
-    ? selectedDoctorData?.priorityFee 
+    ? selectedDoctorData?.priorityFee
     : selectedDoctorData?.recurringFee;
-  const priorityFee = isPriority ? (selectedDoctorData.priorityFee ? selectedDoctorData.priorityFee : 200) : 0;
+  const priorityFee = isPriority
+    ? selectedDoctorData.priorityFee
+      ? selectedDoctorData.priorityFee
+      : 200
+    : 0;
   const subtotal = baseFee + priorityFee;
 
   const discount =
     couponType == "percentage"
       ? (subtotal * couponDiscount) / 100
       : couponDiscount;
-  const convenienceFee = 50;
+  const convenienceFee = ((subtotal - discount) * 10) / 100;
   const total = subtotal - discount + convenienceFee;
   const handleNext = () => {
     if (step === 1 && (!selectedDate || !selectedTime)) {
@@ -237,71 +241,212 @@ export function BookingModal({
     }
   };
 
+  // const handleBooking = async () => {
+  //   try {
+  //     // 1. Create order on backend
+  //     const orderResponse = await fetch("/api/payments/create-order", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         amount: total, // in rupees, API multiplies by 100
+  //         doctorId: formData.doctorId,
+  //         // procedureId: "procedure_123", // replace with actual procedureId
+  //         patientData: formData,
+  //         couponId: couponCode || null,
+  //         isUrgent: isPriority,
+  //       }),
+  //     });
+
+  //     let rzpOrder  = await orderResponse.json(); // ✅ order is directly the Razorpay order object
+  //     // order = order.order;
+  //     if (!rzpOrder?.id) {
+  //       throw new Error("Failed to create Razorpay order",   );
+  //     }
+  //     const createOrder = rzpOrder;
+  //     const pendingOrder = {
+  //       ...createOrder,
+  //       status: "pending",
+  //       payment: null,
+  //       patientData: formData,
+  //     };
+
+  //     try {
+  //       await updateOrderStatus(createOrder.id, pendingOrder);
+  //       const newPatient = {
+  //         id: `patient_${Date.now()}`,
+  //         ...formData,
+  //         registrationDate: new Date().toISOString().split("T")[0],
+  //         lastVisit: null,
+  //         totalVisits: 0,
+  //       };
+
+  //       await setDoc(doc(db, "patients", newPatient.id), newPatient);
+  //     } catch (err) {
+  //       console.error(
+  //         "⚠️ Failed to update Firestore, but payment succeeded:",
+  //         err
+  //       );
+  //     }
+  //     // 2. Razorpay options
+  //     const options: any = {
+  //       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+  //       // amount: order.amount, // already in paise
+  //       currency: rzpOrder.currency,
+  //       name: "RJ Healthcare",
+  //       description: "Doctor Appointment Booking",
+  //       order_id: rzpOrder.id, // use directly
+  //       prefill: {
+  //         name: formData.name,
+  //         email: formData.email,
+  //         contact: formData.phone,
+  //       },
+  //       handler: async function (response: any) {
+  //         // ✅ Payment successful
+
+  //         const paidOrder = {
+  //           ...pendingOrder,
+  //           status: "paid",
+  //           payment: response,
+  //         };
+
+  //         await updateOrderStatus(createOrder.id, paidOrder);
+  //         toast({
+  //           title: "Payment Successful!",
+  //           description: `Payment ID: ${response.razorpay_payment_id}`,
+  //         });
+
+  //         // onClose();
+  //         setTimeout(() => {
+  //           setStep(1);
+  //           setSelectedDate(undefined);
+  //           setSelectedTime("");
+  //           setFormData({
+  //             name: "",
+  //             phone: "",
+  //             email: "",
+  //             age: "",
+  //             gender: "",
+  //             symptoms: "",
+  //             doctorId: selectedDoctor?.id || 1,
+  //           });
+  //           onClose();
+  //         }, 2000);
+  //       },
+  //       theme: { color: "#14B8A6" },
+  //     };
+
+  //     // 3. Open Razorpay Checkout
+
+  //     const rzp = new (window as any).Razorpay(options);
+  //     rzp.open();
+
+  //     // 5. Handle payment failure
+  //     rzp.on("payment.failed", async function (response: any) {
+  //       const failedOrder = {
+  //         ...pendingOrder,
+  //         status: "failed",
+  //         payment: response.error || null,
+  //         failedReason: response.error?.description || "Unknown error",
+  //       };
+
+  //       try {
+  //         await updateOrderStatus(createOrder.id, failedOrder);
+  //       } catch (err) {
+  //         console.error(
+  //           "⚠️ Failed to update Firestore on payment.failed:",
+  //           err
+  //         );
+  //       }
+
+  //       toast({
+  //         title: "Payment Failed",
+  //         description: "Payment Failed: " + failedOrder.failedReason,
+  //         variant: "destructive",
+  //       });
+  //     });
+  //   } catch (err) {
+  //     console.error("Payment error:", err);
+  //     toast({
+  //       title: "Payment Failed",
+  //       description: "Something went wrong while processing payment.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
+
   const handleBooking = async () => {
     try {
-      // 1. Create order on backend
+      // 1) Create order on backend
       const orderResponse = await fetch("/api/payments/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: String(total), // in rupees, API multiplies by 100
+          amount: total, // rupees; backend/lib should do *100
           doctorId: formData.doctorId,
-          procedureId: "procedure_123", // replace with actual procedureId
           patientData: formData,
           couponId: couponCode || null,
           isUrgent: isPriority,
         }),
       });
 
-      let order = await orderResponse.json(); // ✅ order is directly the Razorpay order object
-      // order = order.order;
-      if (!order?.order.id) {
-        throw new Error("Failed to create Razorpay order");
-      }
-      const createOrder = order?.order;
+      const payload = await orderResponse.json();
+      const rzpOrder = payload;
+      if (!rzpOrder?.id) throw new Error("Failed to create Razorpay order");
+
       const pendingOrder = {
-        ...createOrder,
+        ...rzpOrder,
         status: "pending",
         payment: null,
         patientData: formData,
       };
+
       try {
-        await updateOrderStatus(createOrder.id, pendingOrder);
+        await updateOrderStatus(rzpOrder.id, pendingOrder);
+
+        const newPatient = {
+          id: `patient_${Date.now()}`,
+          ...formData,
+          registrationDate: new Date().toISOString().split("T")[0],
+          lastVisit: null,
+          totalVisits: 0,
+        };
+        await setDoc(doc(db, "patients", newPatient.id), newPatient);
       } catch (err) {
-        console.error(
-          "⚠️ Failed to update Firestore, but payment succeeded:",
-          err
-        );
+        console.error("⚠️ Failed to update Firestore (pre-checkout):", err);
       }
-      // 2. Razorpay options
-      const options: any = {
+
+      // 2) Razorpay options
+      let finalized = false; // prevent double-updates
+      const rzp = new (window as any).Razorpay({
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: order.amount, // already in paise
-        currency: order.currency,
+        order_id: rzpOrder.id, // ✅ pass real order fields
+        currency: rzpOrder.currency, // ✅
+        amount: rzpOrder.amount, // optional but handy for debugging
         name: "RJ Healthcare",
         description: "Doctor Appointment Booking",
-        order_id: order.id, // use directly
         prefill: {
           name: formData.name,
           email: formData.email,
           contact: formData.phone,
         },
-        handler: async function (response: any) {
-          // ✅ Payment successful
+        handler: async (response: any) => {
+          if (finalized) return;
+          finalized = true;
 
           const paidOrder = {
             ...pendingOrder,
             status: "paid",
             payment: response,
+            paidAt: new Date().toISOString(),
           };
 
-          await updateOrderStatus(createOrder.id, paidOrder);
+          await updateOrderStatus(rzpOrder.id, paidOrder);
+
           toast({
             title: "Payment Successful!",
             description: `Payment ID: ${response.razorpay_payment_id}`,
           });
 
-          // onClose();
           setTimeout(() => {
             setStep(1);
             setSelectedDate(undefined);
@@ -318,24 +463,53 @@ export function BookingModal({
             onClose();
           }, 2000);
         },
-        theme: { color: "#14B8A6" },
-      };
+        modal: {
+          ondismiss: async () => {
+            // Fires when the user closes the Checkout without completing payment
+            if (finalized) return;
+            finalized = true;
 
-      // 3. Open Razorpay Checkout
-      const rzp = new (window as any).Razorpay(options);
+            const cancelledOrder = {
+              ...pendingOrder,
+              status: "cancelled",
+              payment: null,
+              cancelledAt: new Date().toISOString(),
+              cancelledReason: "checkout_closed_by_user",
+            };
+
+            try {
+              await updateOrderStatus(rzpOrder.id, cancelledOrder);
+            } catch (err) {
+              console.error("⚠️ Failed to update Firestore on cancel:", err);
+            }
+
+            toast({
+              title: "Payment Cancelled",
+              description: "You closed the checkout before completing payment.",
+            });
+          },
+        },
+        theme: { color: "#14B8A6" },
+      });
+
+      // 3) Open Razorpay Checkout
       rzp.open();
 
-      // 5. Handle payment failure
-      rzp.on("payment.failed", async function (response: any) {
+      // 4) Payment failure event
+      rzp.on("payment.failed", async (response: any) => {
+        if (finalized) return;
+        finalized = true;
+
         const failedOrder = {
           ...pendingOrder,
           status: "failed",
           payment: response.error || null,
           failedReason: response.error?.description || "Unknown error",
+          failedAt: new Date().toISOString(),
         };
 
         try {
-          await updateOrderStatus(createOrder.id, failedOrder);
+          await updateOrderStatus(rzpOrder.id, failedOrder);
         } catch (err) {
           console.error(
             "⚠️ Failed to update Firestore on payment.failed:",
@@ -693,7 +867,11 @@ export function BookingModal({
                       Priority Appointment
                     </Label>
                     <p className="text-sm text-amber-700">
-                      Get seen faster (+₹{selectedDoctorData.priorityFee ? selectedDoctorData.priorityFee : 200})
+                      Get seen faster (+₹
+                      {selectedDoctorData.priorityFee
+                        ? selectedDoctorData.priorityFee
+                        : 200}
+                      )
                     </p>
                   </div>
                   <Switch
