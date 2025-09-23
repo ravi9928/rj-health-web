@@ -47,6 +47,8 @@ import {
   setDoc,
 } from "firebase/firestore";
 
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -93,7 +95,7 @@ export function BookingModal({
   const [doctors, setDoctors] = useState<any[]>([]);
   const [coupons, setCoupens] = useState<any[]>([]);
 
-  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedDate, setSelectedDate] = useState<Date | null>();
   const [selectedTime, setSelectedTime] = useState("");
   const [isPriority, setIsPriority] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState(true);
@@ -590,13 +592,14 @@ export function BookingModal({
                 <Label className="text-base font-medium mb-4 block">
                   Select Date
                 </Label>
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  disabled={isDateDisabled}
-                  className="rounded-lg border shadow-sm"
-                />
+                  <DatePicker
+                    selected={selectedDate}
+                    onChange={(date) => setSelectedDate(date)}
+                    minDate={new Date()} // disables past dates
+                    dateFormat="MMMM d, yyyy"
+                    inline // shows calendar directly
+                    className="w-full bg-teal-600 text-white rounded-lg border shadow-sm"
+                  />
               </div>
 
               <div>
@@ -966,7 +969,7 @@ export function BookingModal({
                       </div>
                       {couponDiscount > 0 && (
                         <div className="flex justify-between text-green-600">
-                          <span>Discount ({couponDiscount}%):</span>
+                          <span>Discount ({couponDiscount}):</span>
                           <span>-₹{discount}</span>
                         </div>
                       )}
